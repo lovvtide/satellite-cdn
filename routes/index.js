@@ -1,8 +1,8 @@
 import express from 'express';
 
 import Auth from './Auth.js';
-//import GetAccount from './GetAccount.js';
-//import GetAccountCredit from './GetAccountCredit.js';
+import GetAccount from './GetAccount.js';
+import GetCredit from './GetCredit.js';
 import GetItem from './GetItem.js';
 import GetList from './GetList.js';
 import PutUpload from './PutUpload.js';
@@ -13,20 +13,23 @@ export default () => {
 
 	const router = express.Router();
 
+	// Get user account
+	router.get('/account', Auth, GetAccount);
+
+	// Buy storage credit
+	router.get('/credit', Auth, GetCredit);
+
 	// Redirect to object storage
 	router.get('/:id', GetItem);
 
-	// Check auth header
-	router.use(Auth);
-
 	// List all files for one pubkey
-	router.get('/list/:pubkey', GetList);
+	router.get('/list/:pubkey', Auth, GetList);
 
 	// Add a file
-	router.put('/upload', PutUpload);
+	router.put('/upload', Auth, PutUpload);
 
 	// Remove a file
-	router.delete('/:hash', DeleteItem);
+	router.delete('/:hash', Auth, DeleteItem);
 
 	// Return 400 for unknown api routes
 	router.get('*', (req, res) => {

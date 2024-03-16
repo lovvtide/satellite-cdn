@@ -39,7 +39,6 @@ export default async (pubkey) => {
 	const timeRemaining = creditTotal > usageTotal ? (((creditTotal - usageTotal) * 30 * 86400) / (storageTotal / 1000000000)) : 0;
 
 	return {
-		//files,
 		storageTotal,
 		creditTotal,
 		usageTotal,

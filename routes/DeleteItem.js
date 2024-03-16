@@ -1,7 +1,7 @@
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 
-import DeleteFile from '../../database/functions/DeleteFile.js';
-import QueryFiles from '../../database/functions/QueryFiles.js';
+import DeleteFile from '../database/functions/DeleteFile.js';
+import QueryFiles from '../database/functions/QueryFiles.js';
 import R2Client from './R2Client.js';
 
 

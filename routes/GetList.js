@@ -1,4 +1,4 @@
-import QueryFiles from '../../database/functions/QueryFiles.js';
+import QueryFiles from '../database/functions/QueryFiles.js';
 
 
 export default async (req, res) => {
@@ -26,7 +26,6 @@ export default async (req, res) => {
 				created: file.created,
 				infohash: file.infoHash,
 				type: file.mime,
-				//name: file.name,
 				sha256: file.sha256,
 				size: file.size,
 				url: `${process.env.CDN_ENDPOINT}/${file.sha256}${file.ext ? `.${file.ext}` : ''}`

@@ -11,8 +11,8 @@ import OS from 'os';
 import fs from 'fs';
 
 //import ValidateUploadAttempt from '../../database/functions/ValidateUploadAttempt.js';
-import Account from '../../database/functions/Account.js';
-import CreateFile from '../../database/functions/CreateFile.js';
+import Account from '../database/functions/Account.js';
+import CreateFile from '../database/functions/CreateFile.js';
 import R2Client from './R2Client.js';
 
 

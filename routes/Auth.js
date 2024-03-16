@@ -1,4 +1,4 @@
-import { verifyEvent } from 'nostr-tools';
+import { verifySignature } from 'nostr-tools';
 
 
 export default (req, res, next) => {
@@ -24,7 +24,7 @@ export default (req, res, next) => {
 		const now = Math.floor(Date.now() / 1000);
 
 		if (
-			!verifyEvent(req.blossom.auth)
+			!verifySignature(req.blossom.auth)
 			|| req.blossom.auth.kind !== 24242
 			|| isNaN(req.blossom.auth.created_at)
 			|| req.blossom.auth.created_at > (now + authTolerance)
