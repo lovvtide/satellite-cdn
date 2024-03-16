@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import cors from 'cors';
 
 import Connect from './database/functions/Connect.js';
-import MediaRouter from './routers/media/index.js';
+import BlossomRouter from './routers/blossom/index.js';
 
 
 export const start = async () => {
@@ -22,7 +22,7 @@ export const start = async () => {
   app.use(cors());
 
   // Attach routers
-  app.use('/v1/media', MediaRouter());
+  app.use('/', BlossomRouter());
 
   // Connect to the database
   await Connect({ connection: process.env.DB_CONNECTION_STRING });

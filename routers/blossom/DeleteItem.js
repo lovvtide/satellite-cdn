@@ -9,31 +9,25 @@ export default async (req, res) => {
 
 	try {
 
-		const { auth } = req;
-
-		if (auth.content !== 'Delete Item') {
-			throw { code: 403 };
-		}
-
-		if (Math.abs(auth.created_at - Math.ceil(Date.now() / 1000)) > (60 * 10)) {
-			throw { code: 403 };
+		if (req.blossom.verb !== 'delete') {
+			throw { code: 401 };
 		}
 
 		let sha256;
 
-		for (let tag of auth.tags) {
-			if (tag[0] === 'x' && typeof tag[1] === 'string') {
+		for (let tag of req.blossom.auth.tags) {
+			if (tag[0] === 'x') {
 				sha256 = tag[1];
 				break;
 			}
 		}
 
 		if (!sha256) {
-			throw { code: 400 };
+			throw { code: 401 };
 		}
 
 		const deleted = await DeleteFile({
-			pubkey: auth.pubkey,
+			pubkey: req.blossom.auth.pubkey,
 			sha256
 		});
 
@@ -55,14 +49,13 @@ export default async (req, res) => {
 					Bucket: process.env.S3_BUCKET,
 					Key: deleted.ext ? `${deleted.sha256}.${deleted.ext}` : deleted.sha256
 				}));
-
-				console.log('remote delete response', deleteResponse);
 			}
 		}
 
 		res.send();
 
 	} catch (err) {
+
 		console.log(err);
 		res.status(err.code || 500).send(err.message || 'Unknown Error');
 	}

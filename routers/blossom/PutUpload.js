@@ -5,13 +5,13 @@ import { PassThrough } from 'stream';
 import { encode } from 'magnet-uri';
 import createTorrent from 'create-torrent';
 import parseTorrent from 'parse-torrent';
-import sanitize from 'sanitize-filename';
 import mimeTypes from 'mime-types';
 import crypto from 'crypto';
 import OS from 'os';
 import fs from 'fs';
 
-import ValidateUploadAttempt from '../../database/functions/ValidateUploadAttempt.js';
+//import ValidateUploadAttempt from '../../database/functions/ValidateUploadAttempt.js';
+import Account from '../../database/functions/Account.js';
 import CreateFile from '../../database/functions/CreateFile.js';
 import R2Client from './R2Client.js';
 
@@ -52,31 +52,21 @@ const ComputeTorrentInfo = (input, options = {}) => {
 
 export default async (req, res) => {
 
-	let client, tempName, tempPath, constrainSize, customLabel;
+	let client, tempName, tempPath, constrainSize;
 
 	try {
 
-		const { auth } = req;
-
-		if (auth.content !== 'Authorize Upload') {
-			throw { code: 403 };
+		if (req.blossom.verb !== 'upload') {
+			throw { code: 401 };
 		}
 
-		if (Math.abs(auth.created_at - Math.ceil(Date.now() / 1000)) > (60 * 10 * 5)) {
-			throw { code: 403 };
-		}
-
-		const validUpload = await ValidateUploadAttempt(auth);
-
-		if (!validUpload) {
-			throw { code: 403 };
-		}
-
-		//const { timeRemaining } = await GetMediaAccount(auth.pubkey);
+		/*
+		const { timeRemaining } = await Account(req.blossom.auth.pubkey);
 
 		if (timeRemaining !== Infinity && timeRemaining <= 0) {
 			throw { code: 402 };
 		}
+		*/
 
 		tempName = `${crypto.randomBytes(20).toString('hex')}.temp`;
 		tempPath = `${OS.homedir()}/temp/${tempName}`;
@@ -90,16 +80,14 @@ export default async (req, res) => {
 		// Pass through stream to split request readable stream
 		const passThrough = new PassThrough();
 
-		// Complettion flags
+		// Completion flags
 		let savedLocal, sha256;
 
 		fileStream.on('finish', () => {
-		  //console.log('File saved on disk');
 		  savedLocal = true;
 		});
 
 		hash.on('finish', () => {
-			//console.log('hash finished');
 			hash.end();
 			sha256 = hash.read();
 		});
@@ -122,16 +110,6 @@ export default async (req, res) => {
 			}
 		});
 
-		// Log upload progress (TODO disable for prod)
-		uploading.on('httpUploadProgress', (progress) => {
-			//console.log('upload prog', progress);
-
-			// TODO sum up values as they are reported so
-			// if the total file size exceeds 5GB throw
-			// an error
-
-		});
-
 		// Pipe the request body to the passthrough stream
 		req.pipe(passThrough);
 
@@ -144,26 +122,22 @@ export default async (req, res) => {
 		}
 
 		// Check for indicated constraints
-		for (let tag of auth.tags) {
+		for (let tag of req.blossom.auth.tags) {
 
 			if (tag[0] === 'size') {
 
+				if (constrainSize) {
+					throw { code: 401 };
+				}
+
 				constrainSize = parseInt(tag[1]);
-
-			} else if (tag[0] === 'label') {
-
-				customLabel = String(tag[1]);
 			}
 		}
 
-		// If size is constrained, check value
-		if (typeof constrainSize !== 'undefined') {
+		const stat = fs.statSync(tempPath);
 
-			const stat = fs.statSync(tempPath);
-
-			if (stat.size !== constrainSize) {
-				throw { code: 400 };
-			}
+		if (stat.size !== constrainSize) {
+			throw { code: 401 };
 		}
 
 		// Get a read stream to the newly created temp file
@@ -172,14 +146,7 @@ export default async (req, res) => {
 		// Determine the mimetype and file ext
 		const fileInfo = await fileTypeFromStream(readLocal);
 
-		let mime, name, ext;
-
-		for (let tag of auth.tags) {
-			if (tag[0] === 'name' && typeof tag[1] === 'string') {
-				name = sanitize(tag[1]);
-				break;
-			}
-		}
+		let mime, ext;
 
 		if (fileInfo) {
 
@@ -188,17 +155,6 @@ export default async (req, res) => {
 			if (fileInfo.ext) { // Use detected ext if it exists
 
 				ext = fileInfo.ext;
-
-			}
-		}
-
-		if (!ext && name && name.indexOf('.') !== -1) {
-
-			const parsedext = name.slice(name.lastIndexOf('.') + 1);
-
-			if (parsedext) {
-
-				ext = parsedext;
 			}
 		}
 
@@ -216,76 +172,43 @@ export default async (req, res) => {
 			mime = inferred || 'application/octet-stream';
 		}
 
-		// Get the name of the file (hash + ext)
-		const key = ext ? `${sha256}.${ext}` : sha256;
-
 		const copyParams = {
 			CopySource: `/${process.env.S3_BUCKET}/${tempName}`,
 			Bucket: process.env.S3_BUCKET,
 			MetadataDirective: 'REPLACE',
 			ContentType: mime,
-			Key: key
+			Key: sha256
 		};
 
-		/*
-
-		// Types of files for which to omit the content disposition header
-		const inlineTypes = [ 'image', 'video', 'audio' ];
-
-		if (name && inlineTypes.indexOf(mime.split('/')[0]) === -1) {
-
-			// TODO maybe add ContentDisposition header to copy params
-		}
-
-		*/
-
+		// Note that the torrent "name" is just the sha256 hash.
+		// This is important because the value of the name will
+		// effect the infohash, which should be deterministic
 		const resolved = await Promise.all([
-			ComputeTorrentInfo(tempPath, { name }),
+			ComputeTorrentInfo(tempPath, { name: sha256 }),
 			client.send(new CopyObjectCommand(copyParams))
 		]);
 
 		const { infohash, size, magnet } = resolved[0];
 
-		const url = `${process.env.CDN_ENDPOINT}/${key}`;
+		const url = `${process.env.CDN_ENDPOINT}/${ext ? `${sha256}.${ext}` : sha256}`;
 
 		const record = await CreateFile({
-			pubkey: auth.pubkey,
-			upload: auth.id,
-			customLabel,
+			pubkey: req.blossom.auth.pubkey,
 			sha256,
 			infohash,
 			magnet,
-			name,
 			mime,
 			size,
 			ext
 		});
 
-		const nip94 = [
-			[ 'x', sha256 ],
-			[ 'm', mime ],
-			[ 'i', infohash ],
-			[ 'url', url ],
-			[ 'size', String(size) ],
-			[ 'magnet', magnet ]
-		];
-
-		if (name) {
-
-			nip94.push([ 'name', name ]);
-		}
-
 		res.json({
 			created: record.created,
-			sha256,
-			name,
-			url,
 			infohash,
-			magnet,
-			size,
 			type: mime,
-			nip94,
-			label: customLabel
+			sha256,
+			size,
+			url
 		});
 
 	} catch (err) {
