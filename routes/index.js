@@ -17,7 +17,7 @@ export default () => {
 	router.get('/account', Auth, GetAccount);
 
 	// Buy storage credit
-	router.get('/credit', Auth, GetCredit);
+	router.get('/account/credit', Auth, GetCredit);
 
 	// Redirect to object storage
 	router.get('/:id', GetItem);

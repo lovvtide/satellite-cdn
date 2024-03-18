@@ -1,0 +1,205 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SATELLITE CDN</title>
+  </head>
+  <body style="font-family: monospace;display: flex;align-items: center;justify-content: center;background: #000;color: #fff; line-height: 17px;">
+    <div
+      id="invoice-qr"
+      style="height:400px;width:400px"
+    />
+    <div style="display: flex;">
+      <img style="width: 48px; margin-right: 12px; margin-left: -5px;" src='/icon.svg' />
+      <h1 id='page-title'>SATELLITE CDN</h1>
+    </div>
+    <br />
+
+    <!-- <h3>CHECK ACCOUNT BALANCE</h3>
+    <p>
+      Click "Check Account" to fetch your current account status, usage, and records
+      of previous payments
+    </p>
+    <button id="account">Check Account</button>
+
+    <br />
+    <br /> -->
+
+    <h3 id=invoice-mode>GET INVOICE TO BUY STORAGE</h3>
+    <div id="get-invoice">
+      <p style="margin-bottom: 24px;">
+        Storage space on the CDN is pre-paid at a flat rate of $0.05 USD per gigabyte per month. Data transfer (aka "bandwidth") is free and unlimited. Please specify the amount of credit you'd like to add to your account and click "Get Invoice" to get a lightning invoice.
+      </p>
+      <button style="padding: 8px" id='credit'>Get Invoice</button>
+      <label>
+        <input
+          style="padding: 8px;"
+          placeholder="1"
+          type="text"
+          id="credit-input"
+        />
+        (GB x MONTH)
+      </label>
+    <div>
+    <script type="text/javascript" src="/qrjs2.js"></script>
+    <script>
+
+      const unixNow = () => Math.floor(Date.now() / 1000);
+      //const pageTitle = document.getElementById('page-title');
+      const accountButton = document.getElementById('account');
+      const creditButton = document.getElementById('credit');
+      const creditInput = document.getElementById('credit-input');
+
+      //pageTitle.textContent = window.location.hostname;
+      //pageTitle.style['text-transform'] = 'uppercase';
+
+      const showInvoice = (mode, params) => {
+
+        const div = document.getElementById('invoice-qr');
+        const offer = document.createElement('p');
+        offer.textContent = `BUY ${params.gbMonths} GB MONTH (${params.sats} SATS)`;
+        offer.style.color = 'rgb(219, 170, 49)';
+        div.appendChild(offer);
+
+        const instructions = document.createElement('p');
+        instructions.textContent = `Storage will be credited to your account within a few seconds of paying the invoice`
+        div.appendChild(instructions);
+
+        const invoice = document.createElement('input');
+
+        invoice.value = params.pr;
+        invoice.style['width'] = '-webkit-fill-available';
+        invoice.style['padding'] = '15px';
+        invoice.style['color'] = '#fff';
+        invoice.style['background'] = '#000';
+        invoice.style['border'] = '0.5px solid #333';
+        invoice.style['font-family'] = 'monospace';
+        invoice.style['outline'] = 'none';
+        invoice.style['user-select'] = 'all';
+        invoice.readOnly = true;
+        div.appendChild(invoice);
+
+        const qr = QRCode.generateSVG(params.pr, {
+          ecclevel: 'M',
+          fillcolor: '#FFF',
+          textcolor: '#000',
+          margin: 3,
+          modulesize: 8
+        });
+
+        div.appendChild(qr);
+        qr.style['margin-top'] = '15px';
+      }
+
+      /*
+      // check account
+      accountButton.addEventListener('click', async () => {
+
+        const pubkey = await window.nostr.getPublicKey();
+
+        const auth = await window.nostr.signEvent({
+          kind: 24242,
+          content: 'Get Account',
+          created_at: unixNow(),
+          tags: [
+            ['t', 'account'],
+            ['expiration', unixNow() + 60 * 5],
+          ],
+        });
+
+        await fetch(`/account`, {
+          method: 'GET',
+          headers: { authorization: 'Nostr ' + btoa(JSON.stringify(auth)) },
+        }).then(async (res) => {
+          if (res.ok) {
+
+            const accountData = await res.json();
+
+            console.log('account', accountData);
+
+          } else alert(await res.text());
+        });
+      });
+      */
+
+      // get invoice
+      creditButton.addEventListener('click', async () => {
+
+        const gbmonths = parseInt(creditInput.value || '1');
+
+        if (isNaN(gbmonths) || !isFinite(gbmonths)) {
+          alert('Please specify the number of GB months you want to buy');
+          return;
+        }
+
+        const pubkey = await window.nostr.getPublicKey();
+        const auth = await window.nostr.signEvent({
+          kind: 24242,
+          content: 'Buy Credit',
+          created_at: unixNow(),
+          tags: [
+            [ 't', 'credit' ],
+            [ 'gb_months', String(gbmonths) ],
+            [ 'expiration', unixNow() + 60 * 5 ],
+          ],
+        });
+
+        await fetch(`/account/credit`, {
+          method: 'GET',
+          headers: { authorization: 'Nostr ' + btoa(JSON.stringify(auth)) },
+        }).then(async (res) => {
+          if (res.ok) {
+
+            creditInput.value = '';
+            const service = await res.json();
+            //console.log('service', service);
+
+            // Prompt user to sign the returned payment event
+            const payment = await window.nostr.signEvent(service.payment);
+
+            // Get invoice
+            const invoice = await fetch(service.callback + `?amount=${service.amount}&nostr=${encodeURIComponent(JSON.stringify(payment))}`).then(async resp => {
+
+              const invoiceData = await resp.json();
+              //console.log('invoiceData', invoiceData);
+
+              const mode = document.getElementById('invoice-mode');
+              mode.textContent = '';
+
+              const get = document.getElementById('get-invoice');
+              get.style.display = 'none';
+
+              let gbMonths, sats;
+
+              for (let tag of service.offer.tags) {
+
+                if (tag[0] === 'amount') {
+
+                  sats = parseInt(tag[1]) / 1000;
+
+                } else if (tag[0] === 'gb_months') {
+
+                  gbMonths = parseInt(tag[1]);
+                }
+              }
+
+              if (!gbMonths || !sats) { return; }
+
+              showInvoice(mode, {
+                pr: invoiceData.pr,
+                gbMonths,
+                sats
+              });
+
+            });
+
+          } else alert(await res.text());
+
+        });
+      });
+
+    </script>
+  </body>
+</html>

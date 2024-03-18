@@ -91,6 +91,6 @@ export default async (app, event) => {
 
 	if (updated) {
 
-		console.log('Updated storage credit ->', updated);
+		console.log(`[PURCHASE] credited ${updated.gb_months} GB months to ${updated.pubkey}`);
 	}
 };

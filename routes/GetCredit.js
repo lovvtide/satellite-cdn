@@ -8,7 +8,7 @@ export default async (req, res) => {
 
 	try {
 
-		if (req.blossom.verb !== 'account') {
+		if (req.blossom.verb !== 'credit') {
 			throw { code: 401 };
 		}
 

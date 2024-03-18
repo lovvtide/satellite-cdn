@@ -27,7 +27,10 @@ export const start = async () => {
   // Enable any client to connect
   app.use(cors());
 
-  // Attach routers
+  // Serve onboarding page at root
+  app.use('/', express.static('static'))
+
+  // Attach api routes
   app.use('/', Routes());
 
   // Connect to the database
