@@ -59,6 +59,20 @@ export default async (pubkey) => {
 			}
 
 			return tx;
+		}),
+		files: (file => {
+
+			return {
+				created: file.created,
+				infohash: file.infoHash,
+				magnet: file.magnet,
+				type: file.mime,
+				name: file.name,
+				sha256: file.sha256,
+				size: file.size,
+				url: `${process.env.CDN_ENDPOINT}/${file.sha256}${file.ext ? `.${file.ext}` : ''}`,
+				label: file.label
+			};
 		})
 	};
 };
