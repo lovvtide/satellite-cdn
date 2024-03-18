@@ -55,7 +55,7 @@
       //pageTitle.textContent = window.location.hostname;
       //pageTitle.style['text-transform'] = 'uppercase';
 
-      const showInvoice = (mode, params) => {
+      const showInvoice = (params) => {
 
         const div = document.getElementById('invoice-qr');
         const offer = document.createElement('p');
@@ -187,7 +187,7 @@
 
               if (!gbMonths || !sats) { return; }
 
-              showInvoice(mode, {
+              showInvoice({
                 pr: invoiceData.pr,
                 gbMonths,
                 sats
