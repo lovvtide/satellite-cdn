@@ -60,13 +60,11 @@ export default async (req, res) => {
 			throw { code: 401 };
 		}
 
-		/*
 		const { timeRemaining } = await Account(req.blossom.auth.pubkey);
 
 		if (timeRemaining !== Infinity && timeRemaining <= 0) {
 			throw { code: 402 };
 		}
-		*/
 
 		tempName = `${crypto.randomBytes(20).toString('hex')}.temp`;
 		tempPath = `${OS.homedir()}/temp/${tempName}`;
