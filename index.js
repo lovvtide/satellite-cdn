@@ -41,6 +41,9 @@ export const start = async () => {
 
     console.log(`Listening on port ${PORT}`);
 
+    // TODO ensure that homedir/temp path exists
+    // and create as necessary
+
     // Create nostr interface
     app.listener = new Listener(app);
 

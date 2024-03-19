@@ -47,7 +47,8 @@ export default async (req, res) => {
 
 				const deleteResponse = await client.send(new DeleteObjectCommand({
 					Bucket: process.env.S3_BUCKET,
-					Key: deleted.ext ? `${deleted.sha256}.${deleted.ext}` : deleted.sha256
+					Key: deleted.sha256
+					//Key: deleted.ext ? `${deleted.sha256}.${deleted.ext}` : deleted.sha256
 				}));
 			}
 		}
