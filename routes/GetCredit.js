@@ -9,7 +9,7 @@ export default async (req, res) => {
 	try {
 
 		if (req.blossom.verb !== 'credit') {
-			throw { code: 401 };
+			throw { code: 401, message: 'Expected t tag value \'credit\'' };
 		}
 
 		let gb_months;
@@ -21,7 +21,7 @@ export default async (req, res) => {
 				gb_months = parseFloat(tag[1]);
 
 				if (isNaN(gb_months) || !isFinite(gb_months)) {
-					throw { code: 400 };
+					throw { code: 400, message: 'Invalid \'gb_months\' tag' };
 				}
 
 				break;
@@ -29,7 +29,7 @@ export default async (req, res) => {
 		}
 
 		if (!gb_months) {
-			throw { code: 400 };
+			throw { code: 400, message: 'Missing \'gb_months\' tag' };
 		}
 
 		const xr = await GetExchangeRate('USD');
@@ -86,6 +86,6 @@ export default async (req, res) => {
 
 	} catch (err) {
 		console.log(err);
-		res.status(err.code || 500).send(err.message || 'Unknown Error');
+		res.status(err.code || 500).json({ message: err.message || 'Unknown Error' });
 	}
 };

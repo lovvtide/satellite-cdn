@@ -6,7 +6,7 @@ export default (req, res) => {
 		const { id } = req.params;
 
 		if (!id) {
-			throw { code: 400 };
+			throw { code: 400, message: 'Missing hash' };
 		}
 
 		// Redirect to object storage endpoint sans extension
@@ -14,6 +14,6 @@ export default (req, res) => {
 
 	} catch (err) {
 
-		res.status(err.code).send();
+		res.status(err.code).json({ message: err.message || 'Unknown Error' });
 	}
 };

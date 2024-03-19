@@ -6,7 +6,7 @@ export default async (req, res) => {
 	try {
 
 		if (req.blossom.verb !== 'account') {
-			throw { code: 401 };
+			throw { code: 401, message: 'Expected t tag value \'account\'' };
 		}
 
 		const account = await Account(req.blossom.auth.pubkey);
@@ -15,6 +15,6 @@ export default async (req, res) => {
 
 	} catch (err) {
 		console.log(err);
-		res.status(err.code || 500).send(err.message || 'Unknown Error');
+		res.status(err.code || 500).json({ message: err.message || 'Unknown Error' });
 	}
 };

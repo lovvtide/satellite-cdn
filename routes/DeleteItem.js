@@ -10,7 +10,7 @@ export default async (req, res) => {
 	try {
 
 		if (req.blossom.verb !== 'delete') {
-			throw { code: 401 };
+			throw { code: 401, message: 'Expected t tag value \'delete\'' };
 		}
 
 		let sha256;
@@ -23,7 +23,7 @@ export default async (req, res) => {
 		}
 
 		if (!sha256) {
-			throw { code: 401 };
+			throw { code: 401, message: 'Missing x tag' };
 		}
 
 		const deleted = await DeleteFile({
@@ -58,7 +58,7 @@ export default async (req, res) => {
 	} catch (err) {
 
 		console.log(err);
-		res.status(err.code || 500).send(err.message || 'Unknown Error');
+		res.status(err.code || 500).json({ message: err.message || 'Unknown Error' });
 	}
 
 };

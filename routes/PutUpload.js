@@ -57,13 +57,13 @@ export default async (req, res) => {
 	try {
 
 		if (req.blossom.verb !== 'upload') {
-			throw { code: 401 };
+			throw { code: 401, message: 'Expected t tag value \'upload\'' };
 		}
 
 		const { timeRemaining } = await Account(req.blossom.auth.pubkey);
 
 		if (timeRemaining !== Infinity && timeRemaining <= 0) {
-			throw { code: 402 };
+			throw { code: 402, message: 'Payment requried' };
 		}
 
 		tempName = `${crypto.randomBytes(20).toString('hex')}.temp`;
@@ -125,7 +125,7 @@ export default async (req, res) => {
 			if (tag[0] === 'size') {
 
 				if (constrainSize) {
-					throw { code: 401 };
+					throw { code: 401, message: 'Duplicate size tag' };
 				}
 
 				constrainSize = parseInt(tag[1]);
@@ -135,7 +135,7 @@ export default async (req, res) => {
 		const stat = fs.statSync(tempPath);
 
 		if (stat.size !== constrainSize) {
-			throw { code: 401 };
+			throw { code: 401, message: 'Value given in size tag does not match detected size' };
 		}
 
 		// Get a read stream to the newly created temp file
@@ -211,7 +211,7 @@ export default async (req, res) => {
 
 	} catch (err) {
 		console.log(err);
-		res.status(err.code || 500).send(err.message || 'Unknown Error');
+		res.status(err.code || 500).json({ message: err.message || 'Unknown Error' });
 	}
 
 	try { // Cleanup temp local file

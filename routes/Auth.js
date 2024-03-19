@@ -8,7 +8,7 @@ export default (req, res, next) => {
 	try {
 
 		if (!req.headers.authorization) {
-			throw { code: 401 }; 
+			throw { code: 401, message: 'Missing authorization header' }; 
 		}
 
 		// Parse the auth header
@@ -29,7 +29,7 @@ export default (req, res, next) => {
 			|| isNaN(req.blossom.auth.created_at)
 			|| req.blossom.auth.created_at > (now + authTolerance)
 		) {
-			throw { code: 401 };
+			throw { code: 401, message: 'Invalid auth' };
 		}
 
 		let expires;
@@ -40,7 +40,7 @@ export default (req, res, next) => {
 
 				// Prevent multiple `expiration` tags
 				if (expires) {
-					throw { code: 401 };
+					throw { code: 401, message: 'Duplicate expires tag' };
 				}
 
 				expires = parseInt(tag[1]);
@@ -49,7 +49,7 @@ export default (req, res, next) => {
 
 				// Prevent multiple `t` tags
 				if (req.blossom.verb) {
-					throw { code: 401 };
+					throw { code: 401, message: 'Duplicate t tag' };
 				}
 
 				req.blossom.verb = tag[1];
@@ -60,14 +60,14 @@ export default (req, res, next) => {
 			!expires
 			|| expires <= now
 		) {
-			throw { code: 401 };
+			throw { code: 401, message: 'Invalid auth' };
 		}
 
 		next();
 
 	} catch (err) {
 		console.log('err', err);
-		res.status(err.code || 500).send();
+		res.status(err.code || 500).json({ message: err.message || 'Unknown Error' });
 	}
 
 };
