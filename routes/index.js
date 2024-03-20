@@ -5,6 +5,7 @@ import GetAccount from './GetAccount.js';
 import GetCredit from './GetCredit.js';
 import GetItem from './GetItem.js';
 import GetList from './GetList.js';
+import HeadItem from './HeadItem.js';
 import PutUpload from './PutUpload.js';
 import DeleteItem from './DeleteItem.js';
 
@@ -18,6 +19,9 @@ export default () => {
 
 	// Buy storage credit
 	router.get('/account/credit', Auth, GetCredit);
+
+	// Check if object exists
+	router.head('/:id', HeadItem);
 
 	// Redirect to object storage
 	router.get('/:id', GetItem);
