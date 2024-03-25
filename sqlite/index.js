@@ -311,30 +311,6 @@ class Database extends EventEmitter {
 
 		// TODO sort list
 	}
-
-	// TODO move this function elsewhere
-	async getExchangeRate() {
-		// Don't check the exchange rate more than once every 5 mins
-		const EXCHANGE_RATE_MAX_AGE = 300;
-
-		const now = Math.floor(Date.now() / 1000);
-
-		// If not found or stale, fetch new data
-		if (!this.xr || now - this.xr.at > EXCHANGE_RATE_MAX_AGE) {
-			// Yes, this endpoint is hardcoded for now. That would be great if exchange
-			// rate apis were standardized wouldn't it? Maybe someone can make a DVM...
-			const resp = await axios.get(
-				'https://api.coinbase.com/v2/exchange-rates?currency=BTC',
-			);
-
-			this.xr = {
-				rate: 1 / (resp.data.data.rates.USD * 0.00000001),
-				at: now,
-			};
-		}
-
-		return this.xr.rate;
-	}
 }
 
 export default Database;
