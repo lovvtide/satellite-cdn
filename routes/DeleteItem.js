@@ -1,16 +1,11 @@
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 
-import DeleteFile from '../database/functions/DeleteFile.js';
-import QueryFiles from '../database/functions/QueryFiles.js';
 import R2Client from './R2Client.js';
 
-
 export default async (req, res) => {
-
 	try {
-
 		if (req.blossom.verb !== 'delete') {
-			throw { code: 401, message: 'Expected t tag value \'delete\'' };
+			throw { code: 401, message: "Expected t tag value 'delete'" };
 		}
 
 		let sha256;
@@ -26,39 +21,27 @@ export default async (req, res) => {
 			throw { code: 401, message: 'Missing x tag' };
 		}
 
-		const deleted = await DeleteFile({
+		// Delete record of blob, owned by given pubkey
+		const deleted = req.app.db.deleteBlob(sha256, {
 			pubkey: req.blossom.auth.pubkey,
-			sha256
 		});
 
-		// If any document was modified, look for
-		// remaining records with the same hash,
-		// if none exist delete from remote
 		if (deleted) {
+			const client = R2Client();
 
-			const remaining = await QueryFiles({
-				deleted: { $exists: false },
-				sha256
-			});
-
-			if (remaining.length === 0) {
-
-				const client = R2Client();
-
-				const deleteResponse = await client.send(new DeleteObjectCommand({
+			const deleteResponse = await client.send(
+				new DeleteObjectCommand({
 					Bucket: process.env.S3_BUCKET,
-					Key: deleted.sha256
-					//Key: deleted.ext ? `${deleted.sha256}.${deleted.ext}` : deleted.sha256
-				}));
-			}
+					Key: sha256,
+				}),
+			);
 		}
 
 		res.send();
-
 	} catch (err) {
-
 		console.log(err);
-		res.status(err.code || 500).json({ message: err.message || 'Unknown Error' });
+		res
+			.status(err.code || 500)
+			.json({ message: err.message || 'Unknown Error' });
 	}
-
 };

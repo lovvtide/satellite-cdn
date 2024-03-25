@@ -9,9 +9,7 @@ import HeadItem from './HeadItem.js';
 import PutUpload from './PutUpload.js';
 import DeleteItem from './DeleteItem.js';
 
-
 export default () => {
-
 	const router = express.Router();
 
 	// Get user account

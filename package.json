@@ -5,7 +5,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node loader.cjs"
   },
   "keywords": [
     "nostr",
@@ -20,6 +21,7 @@
     "@aws-sdk/client-s3": "^3.529.1",
     "@aws-sdk/lib-storage": "^3.529.1",
     "axios": "^1.6.8",
+    "better-sqlite3": "^9.4.3",
     "cors": "^2.8.5",
     "create-torrent": "^6.0.17",
     "dotenv": "^16.4.5",
@@ -27,7 +29,6 @@
     "file-type": "^19.0.0",
     "magnet-uri": "^7.0.5",
     "mime-types": "^2.1.35",
-    "mongoose": "^8.2.1",
     "morgan": "^1.10.0",
     "nostr-tools": "^1.17.0",
     "parse-torrent": "^11.0.16",

@@ -10,20 +10,12 @@ import crypto from 'crypto';
 import OS from 'os';
 import fs from 'fs';
 
-//import ValidateUploadAttempt from '../../database/functions/ValidateUploadAttempt.js';
-import Account from '../database/functions/Account.js';
-import CreateFile from '../database/functions/CreateFile.js';
 import R2Client from './R2Client.js';
 
-
 const ComputeTorrentInfo = (input, options = {}) => {
-
 	return new Promise((resolve, reject) => {
-
 		createTorrent(input, options, async (err, torrentFile) => {
-
 			if (!err) {
-
 				let parsed;
 
 				try {
@@ -39,9 +31,8 @@ const ComputeTorrentInfo = (input, options = {}) => {
 				resolve({
 					magnet: encode(parsed),
 					infohash: parsed.infoHash,
-					size: parsed.length
+					size: parsed.length,
 				});
-
 			} else {
 				reject(err);
 			}
@@ -49,18 +40,15 @@ const ComputeTorrentInfo = (input, options = {}) => {
 	});
 };
 
-
 export default async (req, res) => {
-
 	let client, tempName, tempPath, constrainSize;
 
 	try {
-
 		if (req.blossom.verb !== 'upload') {
-			throw { code: 401, message: 'Expected t tag value \'upload\'' };
+			throw { code: 401, message: "Expected t tag value 'upload'" };
 		}
 
-		const { timeRemaining } = await Account(req.blossom.auth.pubkey);
+		const { timeRemaining } = req.app.db.getAccount(req.blossom.auth.pubkey);
 
 		if (timeRemaining !== Infinity && timeRemaining <= 0) {
 			throw { code: 402, message: 'Payment requried' };
@@ -82,7 +70,7 @@ export default async (req, res) => {
 		let savedLocal, sha256;
 
 		fileStream.on('finish', () => {
-		  savedLocal = true;
+			savedLocal = true;
 		});
 
 		hash.on('finish', () => {
@@ -104,8 +92,8 @@ export default async (req, res) => {
 			params: {
 				Bucket: process.env.S3_BUCKET,
 				Body: passThrough,
-				Key: tempName
-			}
+				Key: tempName,
+			},
 		});
 
 		// Pipe the request body to the passthrough stream
@@ -121,9 +109,7 @@ export default async (req, res) => {
 
 		// Check for indicated constraints
 		for (let tag of req.blossom.auth.tags) {
-
 			if (tag[0] === 'size') {
-
 				if (constrainSize) {
 					throw { code: 401, message: 'Duplicate size tag' };
 				}
@@ -135,7 +121,10 @@ export default async (req, res) => {
 		const stat = fs.statSync(tempPath);
 
 		if (stat.size !== constrainSize) {
-			throw { code: 401, message: 'Value given in size tag does not match detected size' };
+			throw {
+				code: 401,
+				message: 'Value given in size tag does not match detected size',
+			};
 		}
 
 		// Get a read stream to the newly created temp file
@@ -147,10 +136,10 @@ export default async (req, res) => {
 		let mime, ext;
 
 		if (fileInfo) {
-
 			mime = fileInfo.mime;
 
-			if (fileInfo.ext) { // Use detected ext if it exists
+			if (fileInfo.ext) {
+				// Use detected ext if it exists
 
 				ext = fileInfo.ext;
 			}
@@ -159,11 +148,9 @@ export default async (req, res) => {
 		// If mime type not found, try to
 		// infer it from file extension
 		if (!mime) {
-
 			let inferred;
 
 			if (ext) {
-
 				inferred = mimeTypes.lookup(ext);
 			}
 
@@ -175,7 +162,7 @@ export default async (req, res) => {
 			Bucket: process.env.S3_BUCKET,
 			MetadataDirective: 'REPLACE',
 			ContentType: mime,
-			Key: sha256
+			Key: sha256,
 		};
 
 		// Note that the torrent "name" is just the sha256 hash.
@@ -183,70 +170,66 @@ export default async (req, res) => {
 		// effect the infohash, which should be deterministic
 		const resolved = await Promise.all([
 			ComputeTorrentInfo(tempPath, { name: sha256 }),
-			client.send(new CopyObjectCommand(copyParams))
+			client.send(new CopyObjectCommand(copyParams)),
 		]);
 
-		const { infohash, size, magnet } = resolved[0];
+		// const { infohash, size, magnet } = resolved[0];
+		const { size } = resolved[0];
 
 		const url = `${process.env.CDN_ENDPOINT}/${ext ? `${sha256}.${ext}` : sha256}`;
 
-		const record = await CreateFile({
+		const record = req.app.db.createBlob({
 			pubkey: req.blossom.auth.pubkey,
+			type: mime,
 			sha256,
-			infohash,
-			magnet,
-			mime,
 			size,
-			ext
+			ext,
 		});
 
 		res.json({
 			created: record.created,
-			infohash,
 			type: mime,
 			sha256,
 			size,
-			url
+			url,
 		});
-
 	} catch (err) {
 		console.log(err);
-		res.status(err.code || 500).json({ message: err.message || 'Unknown Error' });
+		res
+			.status(err.code || 500)
+			.json({ message: err.message || 'Unknown Error' });
 	}
 
-	try { // Cleanup temp local file
+	try {
+		// Cleanup temp local file
 
 		if (tempPath) {
-
 			await new Promise((resolve, reject) => {
 				fs.unlink(tempPath, (err) => {
 					if (err) {
-						reject(err)
+						reject(err);
 					} else {
 						resolve();
 					}
 				});
 			});
 		}
-
 	} catch (err) {
-
 		console.log('error cleaning up temp local', err);
 	}
 
-	try { // Cleanup temp remote file
+	try {
+		// Cleanup temp remote file
 
 		if (tempName) {
-
-			const deleteResponse = await client.send(new DeleteObjectCommand({
-				Bucket: process.env.S3_BUCKET,
-				Key: tempName
-			}));
+			const deleteResponse = await client.send(
+				new DeleteObjectCommand({
+					Bucket: process.env.S3_BUCKET,
+					Key: tempName,
+				}),
+			);
 		}
-
 	} catch (err) {
-
 		console.log('error cleaning up temp remote', err);
 	}
-
 };

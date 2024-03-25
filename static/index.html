@@ -17,16 +17,6 @@
     </div>
     <br />
 
-    <!-- <h3>CHECK ACCOUNT BALANCE</h3>
-    <p>
-      Click "Check Account" to fetch your current account status, usage, and records
-      of previous payments
-    </p>
-    <button id="account">Check Account</button>
-
-    <br />
-    <br /> -->
-
     <h3 id=invoice-mode>GET INVOICE TO BUY STORAGE</h3>
     <div id="get-invoice">
       <p style="margin-bottom: 24px;">
@@ -47,13 +37,9 @@
     <script>
 
       const unixNow = () => Math.floor(Date.now() / 1000);
-      //const pageTitle = document.getElementById('page-title');
       const accountButton = document.getElementById('account');
       const creditButton = document.getElementById('credit');
       const creditInput = document.getElementById('credit-input');
-
-      //pageTitle.textContent = window.location.hostname;
-      //pageTitle.style['text-transform'] = 'uppercase';
 
       const showInvoice = (params) => {
 
@@ -93,37 +79,6 @@
         qr.style['margin-top'] = '15px';
       }
 
-      /*
-      // check account
-      accountButton.addEventListener('click', async () => {
-
-        const pubkey = await window.nostr.getPublicKey();
-
-        const auth = await window.nostr.signEvent({
-          kind: 24242,
-          content: 'Get Account',
-          created_at: unixNow(),
-          tags: [
-            ['t', 'account'],
-            ['expiration', unixNow() + 60 * 5],
-          ],
-        });
-
-        await fetch(`/account`, {
-          method: 'GET',
-          headers: { authorization: 'Nostr ' + btoa(JSON.stringify(auth)) },
-        }).then(async (res) => {
-          if (res.ok) {
-
-            const accountData = await res.json();
-
-            console.log('account', accountData);
-
-          } else alert(await res.text());
-        });
-      });
-      */
-
       // get invoice
       creditButton.addEventListener('click', async () => {
 
@@ -154,7 +109,6 @@
 
             creditInput.value = '';
             const service = await res.json();
-            //console.log('service', service);
 
             // Prompt user to sign the returned payment event
             const payment = await window.nostr.signEvent(service.payment);
@@ -163,7 +117,6 @@
             const invoice = await fetch(service.callback + `?amount=${service.amount}&nostr=${encodeURIComponent(JSON.stringify(payment))}`).then(async resp => {
 
               const invoiceData = await resp.json();
-              //console.log('invoiceData', invoiceData);
 
               const mode = document.getElementById('invoice-mode');
               mode.textContent = '';
