@@ -1,0 +1,28 @@
+version: "3.7"
+
+volumes:
+  database: {}
+
+services:
+  sateliite-cdn:
+    build: .
+    image: ghcr.io/lovvtide/satellite-cdn
+    restart: unless-stopped
+    environment:
+      DB_PATH: /data
+      S3_BUCKET: dev
+      S3_ACCESS_KEY_ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      S3_SECRET_ACCESS_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      CF_ACCOUNT_ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      APP_SECRET_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      STORAGE_RATE_USD: "0.05"
+      LIGHTNING_PROVIDER_PUBKEY: 79f00d3f5a19ec806189fcab03c1be4ff81d18ee4f653c88fac41fe03570f432
+      LIGHTNING_CALLBACK_URL: https://getalby.com/lnurlp/myapp/callback
+      DB_CONNECTION_STRING: mongodb://localhost/myapp
+      CDN_ENDPOINT: http://localhost:5050
+      BLOB_ENDPOINT: https://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.r2.dev
+      LISTENER_RELAYS: wss://relay.damus.io,wss://nos.lol,wss://relay.snort.social,wss://relay.nostrplebs.com,wss://relay.plebstr.com,wss://relay.nostr.band,wss://nostr.wine
+    volumes:
+      - database:/data
+    ports:
+      - "5050"
