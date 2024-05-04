@@ -120,7 +120,7 @@ export default async (req, res) => {
 
 		const stat = fs.statSync(tempPath);
 
-		if (stat.size !== constrainSize) {
+		if (constrainSize !== undefined && stat.size !== constrainSize) {
 			throw {
 				code: 401,
 				message: 'Value given in size tag does not match detected size',
