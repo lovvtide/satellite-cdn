@@ -41,7 +41,7 @@ const ComputeTorrentInfo = (input, options = {}) => {
 };
 
 export default async (req, res) => {
-	let client, tempName, tempPath, constrainSize;
+	let client, tempName, tempPath, expectedHash;
 
 	try {
 		if (req.blossom.verb !== 'upload') {
@@ -109,21 +109,19 @@ export default async (req, res) => {
 
 		// Check for indicated constraints
 		for (let tag of req.blossom.auth.tags) {
-			if (tag[0] === 'size') {
-				if (constrainSize) {
-					throw { code: 401, message: 'Duplicate size tag' };
+			if (tag[0] === 'x') {
+				if (expectedHash) {
+					throw { code: 401, message: 'Duplicate x tag' };
 				}
 
-				constrainSize = parseInt(tag[1]);
+				expectedHash = tag[1];
 			}
 		}
 
-		const stat = fs.statSync(tempPath);
-
-		if (constrainSize !== undefined && stat.size !== constrainSize) {
+		if (expectedHash !== undefined && expectedHash !== hash) {
 			throw {
 				code: 401,
-				message: 'Value given in size tag does not match detected size',
+				message: 'Hash given in x tag does not match detected content hash',
 			};
 		}
 
