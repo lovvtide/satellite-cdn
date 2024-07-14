@@ -107,7 +107,7 @@ export default async (req, res) => {
 			throw { code: 500 };
 		}
 
-		// Check for indicated constraints
+		// Check for indicated hash constraint
 		for (let tag of req.blossom.auth.tags) {
 			if (tag[0] === 'x') {
 				if (expectedHash) {
@@ -118,7 +118,14 @@ export default async (req, res) => {
 			}
 		}
 
-		if (expectedHash !== undefined && expectedHash !== hash) {
+		if (expectedHash == undefined) {
+			throw {
+				code: 401,
+				message: 'A x tag with a content hash is required in the auth header',
+			};
+		}
+			
+		if (expectedHash !== hash) {
 			throw {
 				code: 401,
 				message: 'Hash given in x tag does not match detected content hash',
