@@ -5,7 +5,7 @@ import { PassThrough } from 'stream';
 import { encode } from 'magnet-uri';
 import createTorrent from 'create-torrent';
 import parseTorrent from 'parse-torrent';
-import mimeTypes from 'mime-types';
+import mimeTypes from 'mime';
 import crypto from 'crypto';
 import OS from 'os';
 import fs from 'fs';
@@ -51,7 +51,7 @@ export default async (req, res) => {
 		const { timeRemaining } = req.app.db.getAccount(req.blossom.auth.pubkey);
 
 		if (timeRemaining !== Infinity && timeRemaining <= 0) {
-			throw { code: 402, message: 'Payment requried' };
+			throw { code: 402, message: 'Payment required' };
 		}
 
 		tempName = `${crypto.randomBytes(20).toString('hex')}.temp`;
@@ -125,7 +125,7 @@ export default async (req, res) => {
 			};
 		}
 			
-		if (expectedHash !== hash) {
+		if (expectedHash !== sha256) {
 			throw {
 				code: 401,
 				message: 'Hash given in x tag does not match detected content hash',
@@ -135,31 +135,38 @@ export default async (req, res) => {
 		// Get a read stream to the newly created temp file
 		const readLocal = await fs.createReadStream(tempPath);
 
-		// Determine the mimetype and file ext
-		const fileInfo = await fileTypeFromStream(readLocal);
+		// Get the extension and mime type from the optional name tag
+		let ext, mime;
+		const nameTag = req.blossom.auth.tags.find((tag) => tag[0] === 'name');
 
-		let mime, ext;
+		if (nameTag) {
+			const filename = nameTag[1];
 
-		if (fileInfo) {
-			mime = fileInfo.mime;
+			ext = filename.split('.').pop();
+			mime = ext ? mimeTypes.getType(ext) : undefined;
+		}
 
-			if (fileInfo.ext) {
-				// Use detected ext if it exists
+		// Get the mime type from the Content-Type header
+		const headerMime = req.headers['content-type'];
+		if (headerMime !== 'application/octet-stream') {
+			mime = headerMime;
+			if (!ext) ext = mimeTypes.getExtension(mime)
+		}
+		
+		// Try to detect the mime type from the magic number of the buffer
+		if (!mime) {
+			const fileInfo = await fileTypeFromStream(readLocal);
 
-				ext = fileInfo.ext;
+			if (fileInfo) {
+				mime = fileInfo.mime;
+				ext = fileInfo.ext ?? mimeTypes.getExtension(mime);
 			}
 		}
 
-		// If mime type not found, try to
-		// infer it from file extension
+		// Defaults mime type to 'application/octet-stream' if none was detected
 		if (!mime) {
-			let inferred;
-
-			if (ext) {
-				inferred = mimeTypes.lookup(ext);
-			}
-
-			mime = inferred || 'application/octet-stream';
+			mime = 'application/octet-stream';
+			ext = null;
 		}
 
 		const copyParams = {
